@@ -1,22 +1,25 @@
 # 每日全球 AI 新闻简报
 
-此仓库计划每天北京时间 17:20（UTC 09:20）自动收集全球 AI 新闻，并尝试生成约 1400 字的简体中文分析稿，重点追踪 DeepSeek V4.1 Pro。
+本仓库使用 GitHub Actions 每天北京时间 17:20（UTC 09:20）抓取公开 Google News RSS，整理 DeepSeek V4.1 Pro 发布追踪、OpenAI、Google/Gemini、Anthropic/Claude、开源模型、AI Agent、AI 芯片与全球 AI 行业新闻。
 
-## 免费本地 AI 生成
-- 新闻来源：公开 Google News RSS。
-- 生成模型：Qwen2.5-0.5B-Instruct 的 GGUF 量化版，在 GitHub Actions runner 上本地运行。
-- **不需要 API 密钥、不需要配置 GitHub Secrets，也不调用付费 API。**
-- 首次运行需要下载约数百 MB 的模型文件；Actions 缓存会尝试复用模型，减少后续下载。
-- 这是较小的本地模型，生成质量、运行时间和可用性可能受 GitHub runner 资源与外部下载状态影响。
-- 如果模型安装、下载或推理失败，工作流仍会保存 RSS 新闻线索，并明确标记本次没有成功生成 AI 总结；不会把规则拼接内容冒充 AI 生成。
+## 当前实现与免费限制
+
+- 不需要 API 密钥、GitHub Secrets 或付费模型 API。
+- 自动任务抓取新闻并生成 Markdown 报告及可复制到 ChatGPT 网页版的提示词文件。
+- **重要：GitHub Actions 不能直接调用当前 ChatGPT 网页会话。** 因此在不使用 API 或其他模型的前提下，本仓库不能全自动让 ChatGPT 网页模型撰写并写回 1400 字分析稿；生成提示词后，需要人工复制到 ChatGPT 网页版并发送。
+- 自动采集内容不是 AI 深度分析；RSS 结果可能遗漏、重复或误分类新闻。DeepSeek 相关搜索结果不等于官方发布确认。
 
 ## 自动运行与手动运行
-- 定时：每天北京时间 17:20（UTC 09:20）。
+
+- 定时：每天北京时间 17:20（UTC 09:20）。GitHub Actions 可能因平台负载延迟，不能保证精确到分钟。
 - 手动：进入仓库 **Actions** → **每日 AI 新闻简报** → **Run workflow**。
-- 如果自动运行失败，请打开 Actions 中最新一次运行查看日志。
+- 报告保存于 `reports/YYYY-MM-DD.md`；若有新闻材料，还会生成 `reports/YYYY-MM-DD-chatgpt-prompt.md`。
+- 如果任务失败，请打开 Actions 中最新一次运行查看日志。
 
 ## DeepSeek 发布核实
-新闻标题和 RSS 搜索结果不是官方发布确认。报告应优先核对 [DeepSeek 官方新闻页](https://www.deepseek.com/en/news/) 和 [官方 API 更新日志](https://api-docs.deepseek.com/zh-cn/updates/)，并区分 V4.1 Flash、Flash-1017、V4 Pro 与 V4.1 Pro。
 
-## 报告
-报告保存于 `reports/YYYY-MM-DD.md`。请打开原始来源核实关键消息；本地小模型的摘要也可能出错。
+新闻标题和 RSS 搜索结果不是官方发布确认。请优先核对 [DeepSeek 官方新闻页](https://www.deepseek.com/en/news/) 和 [官方 API 更新日志](https://api-docs.deepseek.com/zh-cn/updates/)，并区分不同模型名称及版本。
+
+## 权限说明
+
+工作流使用 `contents: write` 权限提交生成的报告。如果提交失败，请在仓库 **Settings → Actions → General → Workflow permissions** 检查是否允许工作流写入仓库内容。
