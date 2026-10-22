@@ -22,7 +22,14 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - name: Generate RSS news report
+      - name: Cache local model weights
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/huggingface/hub
+          key: qwen2.5-0.5b-instruct-q4km-v1
+      - name: Install local inference dependencies
+        run: pip install -r requirements.txt
+      - name: Generate AI-written report
         run: python scripts/daily_briefing.py
       - name: Commit report
         run: |
