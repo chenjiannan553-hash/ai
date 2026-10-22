@@ -32,20 +32,38 @@ fi
 git switch main
 git pull --ff-only origin main
 
-echo "Checking saved ChatGPT/Codex login with a small test request..."
+echo "Checking that Codex is signed in with ChatGPT (not an API key)..."
+if ! AUTH_STATUS="$(codex login status 2>&1)"; then
+  echo "ERROR: Codex has no usable saved login."
+  printf '%s\n' "$AUTH_STATUS"
+  echo "Complete the official ChatGPT sign-in, then retry."
+  exit 4
+fi
+printf '%s\n' "$AUTH_STATUS"
+if printf '%s' "$AUTH_STATUS" | grep -Eiq 'api.?key|apikey'; then
+  echo "ERROR: Codex is using API-key authentication. This automation refuses API billing."
+  exit 5
+fi
+if ! printf '%s' "$AUTH_STATUS" | grep -Eiq 'chatgpt'; then
+  echo "ERROR: Could not verify that the active Codex login is a ChatGPT account."
+  echo "For safety, the installer will not enable scheduled model requests."
+  exit 5
+fi
+
+echo "Checking ChatGPT-backed model access with a small test request..."
 if ! codex exec --ephemeral --sandbox read-only "只输出 AUTH_OK，不执行命令，不读取或修改任何文件。" > "$TMP_OUT" 2> "$TMP_ERR"; then
-  echo "ERROR: Codex could not use the saved ChatGPT login."
+  echo "ERROR: The ChatGPT-backed Codex request failed."
   cat "$TMP_ERR"
   echo
-  echo "Complete the normal Codex sign-in in your browser and try again."
+  echo "Complete the normal Codex sign-in and any required verification."
   echo "If OpenAI requires phone verification, this automation cannot bypass it."
-  exit 4
+  exit 6
 fi
 if ! grep -q "AUTH_OK" "$TMP_OUT"; then
   echo "ERROR: Codex login test did not return AUTH_OK."
   cat "$TMP_OUT"
   cat "$TMP_ERR"
-  exit 5
+  exit 7
 fi
 echo "Codex login test passed."
 
@@ -53,7 +71,7 @@ echo "Checking GitHub push authorization (dry run; no commit is pushed)..."
 if ! git push --dry-run origin main; then
   echo "ERROR: Git can read the repository but does not have working push authorization."
   echo "Sign in to GitHub on this Mac, verify that you can push to main, then retry."
-  exit 6
+  exit 8
 fi
 
 mkdir -p "$PLIST_DIR" "$LOG_DIR"
