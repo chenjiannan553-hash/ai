@@ -1,1 +1,3 @@
-# Uses Python standard library only; no third-party packages required.
+# Local open-weight model inference; no API key or paid API.
+huggingface_hub>=0.26,<1.0
+llama-cpp-python==0.3.16
