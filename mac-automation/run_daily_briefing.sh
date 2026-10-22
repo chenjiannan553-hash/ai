@@ -21,6 +21,21 @@ for command_name in python3 codex git; do
   fi
 done
 
+AUTH_STATUS="$(codex login status 2>&1)" || {
+  echo "ERROR: Codex login is missing or expired."
+  printf '%s\n' "$AUTH_STATUS"
+  exit 9
+}
+if printf '%s' "$AUTH_STATUS" | grep -Eiq 'api.?key|apikey'; then
+  echo "ERROR: Active Codex login is API-key based; refusing to risk API billing."
+  exit 9
+fi
+if ! printf '%s' "$AUTH_STATUS" | grep -Eiq 'chatgpt'; then
+  echo "ERROR: Active Codex login is not verified as ChatGPT authentication."
+  printf '%s\n' "$AUTH_STATUS"
+  exit 9
+fi
+
 cd "$REPO_ROOT"
 
 # Never overwrite local user edits or attempt a merge automatically.
