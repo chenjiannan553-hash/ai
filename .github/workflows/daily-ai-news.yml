@@ -1,6 +1,12 @@
 name: 每日 AI 新闻简报
 
 on:
+  push:
+    branches: [main]
+    paths:
+      - "scripts/daily_briefing.py"
+      - "requirements.txt"
+      - ".github/workflows/daily-ai-news.yml"
   schedule:
     - cron: "20 9 * * *" # 每天北京时间 17:20
   workflow_dispatch:
