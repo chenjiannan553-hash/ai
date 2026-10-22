@@ -76,7 +76,7 @@ def generate_ai_summary(items):
 5. 尽量覆盖 OpenAI、Google/Gemini、Anthropic/Claude、开源模型、AI智能体、芯片算力和产业应用；只写材料实际涉及的主题。
 6. 中文自然、信息密度高，不要逐条机械翻译标题。结尾说明 RSS 材料的限制。
 7. 总长度约1200—1600个汉字（不含链接列表）。"""
-        llm = Llama(model_path=model_path, n_ctx=4096, n_threads=2, verbose=False)
+        llm = Llama(model_path=model_path, n_ctx=8192, n_threads=2, verbose=False)
         response = llm.create_chat_completion(
             messages=[
                 {"role": "system", "content": "你是严谨的科技新闻编辑。优先准确、可追溯和区分事实与推断；材料不足时明确承认不确定。"},
