@@ -48,52 +48,32 @@ def fetch(query):
     return items
 
 
-def generate_ai_summary(items):
-    """Generate a Chinese briefing with a small local open-weight model; no API key."""
-    try:
-        from huggingface_hub import hf_hub_download
-        from llama_cpp import Llama
-        model_path = hf_hub_download(
-            repo_id="Qwen/Qwen2.5-0.5B-Instruct-GGUF",
-            filename="qwen2.5-0.5b-instruct-q4_k_m.gguf",
+def build_chatgpt_prompt(items, now):
+    """Prepare source-grounded prompt for manual use in ChatGPT web; no API or local model."""
+    selected = sorted(items, key=lambda x: x["published"], reverse=True)[:35]
+    facts = []
+    for n, item in enumerate(selected, 1):
+        stamp = item["published"].astimezone(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
+        facts.append(
+            f"{n}. 标题：{item['title']}\n来源：{item['source'] or '未标注'}；时间：{stamp}\n"
+            f"摘要线索：{item.get('description', '')[:700]}\n链接：{item['link']}"
         )
-        # Keep prompt compact enough for the small model and runner memory.
-        selected = sorted(items, key=lambda x: x["published"], reverse=True)[:24]
-        facts = []
-        for n, item in enumerate(selected, 1):
-            stamp = item["published"].astimezone(timezone.utc).strftime("%m-%d %H:%M UTC")
-            desc = item.get("description", "")[:380]
-            facts.append(
-                f"{n}. 标题：{item['title']}\n来源：{item['source'] or '未标注'}；时间：{stamp}\n"
-                f"摘要线索：{desc}\n链接：{item['link']}"
-            )
-        prompt = """请根据下面提供的新闻标题、来源、摘要线索和链接，写一篇约1400个汉字的简体中文《全球AI新闻简报》。
-必须遵守：
-1. 只能把给定材料作为事实依据；标题或搜索结果不是官方确认，不要编造细节、数字、引语或未提供的事件。
-2. 开头先写“今日要点”，然后分为“DeepSeek V4.1 Pro发布追踪”“全球重要动态”“趋势观察”“核实与局限”几个部分。
-3. DeepSeek 部分必须区分 V4.1 Flash/Flash-1017、V4 Pro 与 V4.1 Pro；若材料没有官方确认 V4.1 Pro 已发布，就明确写“本期材料不足以确认官方发布”，不得把 Flash 的更新说成 Pro 发布。
-4. 解释新闻可能意味着什么时，明确标注为“分析”，不要伪装成已证实事实。
-5. 尽量覆盖 OpenAI、Google/Gemini、Anthropic/Claude、开源模型、AI智能体、芯片算力和产业应用；只写材料实际涉及的主题。
-6. 中文自然、信息密度高，不要逐条机械翻译标题。结尾说明 RSS 材料的限制。
-7. 总长度约1200—1600个汉字（不含链接列表）。"""
-        llm = Llama(model_path=model_path, n_ctx=8192, n_threads=2, verbose=False)
-        response = llm.create_chat_completion(
-            messages=[
-                {"role": "system", "content": "你是严谨的科技新闻编辑。优先准确、可追溯和区分事实与推断；材料不足时明确承认不确定。"},
-                {"role": "user", "content": prompt + "\n\n新闻材料：\n" + "\n\n".join(facts)},
-            ],
-            temperature=0.25,
-            top_p=0.85,
-            max_tokens=1800,
-        )
-        text = response["choices"][0]["message"]["content"].strip()
-        if len(text) < 500:
-            raise RuntimeError(f"模型输出过短：{len(text)} 字符")
-        return text, "Qwen2.5-0.5B-Instruct 本地模型"
-    except Exception as exc:
-        print(f"Local AI summary unavailable; using transparent RSS-only fallback: {type(exc).__name__}: {exc}")
-        traceback.print_exc()
-        return None, "未生成 AI 总结（模型下载、安装或推理失败）"
+    instructions = """请根据以下公开 RSS 新闻材料，撰写约 1200—1600 个汉字的简体中文《全球 AI 新闻简报》。
+要求：
+1. 只依据给定材料，不得编造事件、数字、引语或未提供的细节；明确区分事实与分析。
+2. 开头列出 5 条以内的“今日要点”，然后分为“DeepSeek V4.1 Pro 发布追踪”“全球重要动态”“趋势观察”“核实与局限”。
+3. 严格区分 DeepSeek V4.1 Flash、V4 Pro 与 V4.1 Pro。若材料没有可靠的官方确认，必须明确说“本期材料不足以确认官方发布”，不得推断已发布。
+4. 尽量覆盖 OpenAI、Google/Gemini、Anthropic/Claude、开源模型、AI 智能体、芯片算力与产业应用，但只写材料确实涉及的内容。
+5. 合并重复报道；对重要事实附上来源链接。标题和 RSS 摘要不是官方确认。
+6. 如果证据不足，请明确指出，不要用空泛重复的段落填充篇幅。
+7. 用自然、准确、信息密度高的中文写作。"""
+    return (
+        "# ChatGPT 网页版简报生成提示词\n\n"
+        + f"> 新闻采集时间（UTC）：{now.strftime('%Y-%m-%d %H:%M')}\n"
+        + "> 用法：复制本文件全部内容，粘贴到 ChatGPT 网页版并发送。此步骤需人工完成；GitHub Actions 无法直接调用 ChatGPT 网页会话。\n\n"
+        + "## 写作任务\n\n" + instructions
+        + "\n\n## 新闻材料（RSS 线索，需核实）\n\n" + "\n\n".join(facts) + "\n"
+    )
 
 def main():
     now = datetime.now(timezone.utc)
@@ -113,22 +93,23 @@ def main():
                 deepseek_items.append(item)
         sections.append((section, results, None))
 
-    # Build a unique, recent news set for local-model summarization.
+    # Build a unique recent source set and prepare a ChatGPT-web prompt pack.
     unique_items = list({x["link"]: x for x in all_items.values()}.values())
-    ai_summary, summary_engine = generate_ai_summary(unique_items) if unique_items else (None, "没有可用新闻材料")
+    prompt_text = build_chatgpt_prompt(unique_items, now) if unique_items else None
+    prompt_path = Path("reports") / (now.strftime("%Y-%m-%d") + "-chatgpt-prompt.md")
+    if prompt_text:
+        prompt_path.parent.mkdir(parents=True, exist_ok=True)
+        prompt_path.write_text(prompt_text, encoding="utf-8")
 
     # Keep a manageable report; prioritize recent stories and deduplicate links.
     report = [
         "# 全球 AI 新闻简报",
         "",
         f"> 生成时间（UTC）：{now.strftime('%Y-%m-%d %H:%M')}  |  覆盖窗口：近 30 小时",
-        f"> 中文简报引擎：{summary_engine}",
+        "> 中文分析：未自动调用 ChatGPT；本仓库不使用 API 密钥，也不模拟网页登录.",
         "",
     ]
-    if ai_summary:
-        report += ["## AI 生成的中文深度简报", "", ai_summary, "", "---", ""]
-    else:
-        report += ["## 中文简报生成状态", "", "本次没有成功调用本地模型，因此不会把规则拼接内容冒充为 AI 生成。下方保留新闻线索，供阅读和核实。", "", "---", ""]
+    report += ["## 中文简报生成方式", "", "GitHub Actions 不能直接使用 ChatGPT 网页会话。为满足不使用 API 密钥、完全免费的要求，本次只自动采集新闻，并生成可复制到 ChatGPT 网页版的提示词文件；需要人工粘贴提示词并提交，才会得到 ChatGPT 云端总结。", "", f"[打开本日 ChatGPT 提示词文件]({prompt_path.name})" if prompt_text else "本次没有收集到可用于生成提示词的新闻材料。", "", "---", ""]
     report += [
         "## DeepSeek V4.1 Pro 发布追踪",
     ]
@@ -157,8 +138,8 @@ def main():
     report += [
         "",
         "## 阅读说明",
-        "- 新闻材料来自公开 Google News RSS；若本地 Qwen 模型成功运行，中文分析由 GitHub Actions 上的本地开源模型生成，不使用 API 密钥。",
-        "- 本地模型规模较小，分析质量可能有限；模型生成内容仍需通过原始链接核实。",
+        "- 新闻材料来自公开 Google News RSS；本工作流不会自动生成或冒充 ChatGPT 云端分析。",
+        "- 如需 ChatGPT 云端总结，请打开同目录的 chatgpt-prompt 文件，将全文复制到 ChatGPT 网页版发送。",
         "- 新闻标题、媒体转述或搜索结果均不等于官方确认。涉及模型发布、性能、融资或政策的消息，请打开原文并优先核对官方公告。",
         "- 部分 RSS 条目可能重复、相关性不足或无法访问；自动收集不保证完整性。",
         "",
@@ -168,7 +149,7 @@ def main():
     # Use UTC date in filename to keep the workflow deterministic.
     path = outdir / f"{now.strftime('%Y-%m-%d')}.md"
     path.write_text("\n".join(report), encoding="utf-8")
-    print(f"Wrote {path} with {len(all_items)} unique links; AI summary: {bool(ai_summary)} ({summary_engine})")
+    print(f"Wrote {path} with {len(all_items)} unique links; ChatGPT prompt prepared: {bool(prompt_text)}; no API or local model used.")
 
 if __name__ == "__main__":
     main()
