@@ -3,6 +3,7 @@
 from datetime import datetime, timezone, timedelta
 from email.utils import parsedate_to_datetime
 from pathlib import Path
+from zoneinfo import ZoneInfo
 from urllib.parse import quote
 from urllib.request import Request, urlopen
 from html.parser import HTMLParser
@@ -68,9 +69,9 @@ def build_chatgpt_prompt(items, now):
 6. 如果证据不足，请明确指出，不要用空泛重复的段落填充篇幅。
 7. 用自然、准确、信息密度高的中文写作。"""
     return (
-        "# ChatGPT 网页版简报生成提示词\n\n"
-        + f"> 新闻采集时间（UTC）：{now.strftime('%Y-%m-%d %H:%M')}\n"
-        + "> 用法：复制本文件全部内容，粘贴到 ChatGPT 网页版并发送。此步骤需人工完成；GitHub Actions 无法直接调用 ChatGPT 网页会话。\n\n"
+        "# 全球 AI 新闻简报：生成任务与新闻材料\n\n"
+        + f"> 新闻采集时间（UTC）：{now.strftime('%Y-%m-%d %H:%M')}\n\n"
+        + "以下内容包含完整写作任务和 RSS 新闻线索。请直接生成最终简报，不要要求用户再次复制、确认或提供额外信息。\n\n"
         + "## 写作任务\n\n" + instructions
         + "\n\n## 新闻材料（RSS 线索，需核实）\n\n" + "\n\n".join(facts) + "\n"
     )
@@ -96,7 +97,8 @@ def main():
     # Build a unique recent source set and prepare a ChatGPT-web prompt pack.
     unique_items = list({x["link"]: x for x in all_items.values()}.values())
     prompt_text = build_chatgpt_prompt(unique_items, now) if unique_items else None
-    prompt_path = Path("reports") / (now.strftime("%Y-%m-%d") + "-chatgpt-prompt.md")
+    report_date = now.astimezone(ZoneInfo("Asia/Shanghai")).strftime("%Y-%m-%d")
+    prompt_path = Path("reports") / (report_date + "-chatgpt-prompt.md")
     if prompt_text:
         prompt_path.parent.mkdir(parents=True, exist_ok=True)
         prompt_path.write_text(prompt_text, encoding="utf-8")
@@ -147,7 +149,7 @@ def main():
     outdir = Path("reports")
     outdir.mkdir(parents=True, exist_ok=True)
     # Use UTC date in filename to keep the workflow deterministic.
-    path = outdir / f"{now.strftime('%Y-%m-%d')}.md"
+    path = outdir / f"{now.astimezone(ZoneInfo('Asia/Shanghai')).strftime('%Y-%m-%d')}.md"
     path.write_text("\n".join(report), encoding="utf-8")
     print(f"Wrote {path} with {len(all_items)} unique links; ChatGPT prompt prepared: {bool(prompt_text)}; no API or local model used.")
 
