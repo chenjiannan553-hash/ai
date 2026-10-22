@@ -50,7 +50,7 @@ def fetch(query):
 
 
 def build_chatgpt_prompt(items, now):
-    """Prepare source-grounded prompt for manual use in ChatGPT web; no API or local model."""
+    """Prepare source-grounded task material for ChatGPT/Codex; no API key or third-party model."""
     selected = sorted(items, key=lambda x: x["published"], reverse=True)[:35]
     facts = []
     for n, item in enumerate(selected, 1):
@@ -148,7 +148,7 @@ def main():
     ]
     outdir = Path("reports")
     outdir.mkdir(parents=True, exist_ok=True)
-    # Use UTC date in filename to keep the workflow deterministic.
+    # Name reports by Beijing calendar date, regardless of the Mac's local timezone.
     path = outdir / f"{now.astimezone(ZoneInfo('Asia/Shanghai')).strftime('%Y-%m-%d')}.md"
     path.write_text("\n".join(report), encoding="utf-8")
     print(f"Wrote {path} with {len(all_items)} unique links; ChatGPT prompt prepared: {bool(prompt_text)}; no API or local model used.")
