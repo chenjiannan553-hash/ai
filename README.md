@@ -1,17 +1,22 @@
 # 每日全球 AI 新闻简报
 
-此仓库通过 GitHub Actions 每天北京时间 17:20 自动收集 DeepSeek V4.1 Pro 发布追踪及全球 AI 新闻，并将 Markdown 简报提交到 `reports/`。
+此仓库计划每天北京时间 17:20（UTC 09:20）自动收集全球 AI 新闻，并尝试生成约 1400 字的简体中文分析稿，重点追踪 DeepSeek V4.1 Pro。
 
-## 自动运行
-- 定时：每天北京时间 17:20（UTC 09:20）
-- 不需要 API 密钥；使用公开 Google News RSS 源。
-- 这是 RSS 新闻收集与摘要整理版，不调用大语言模型，因此不能保证生成真正的 AI 深度分析，也不能保证 DeepSeek V4.1 Pro 已发布。
+## 免费本地 AI 生成
+- 新闻来源：公开 Google News RSS。
+- 生成模型：Qwen2.5-0.5B-Instruct 的 GGUF 量化版，在 GitHub Actions runner 上本地运行。
+- **不需要 API 密钥、不需要配置 GitHub Secrets，也不调用付费 API。**
+- 首次运行需要下载约数百 MB 的模型文件；Actions 缓存会尝试复用模型，减少后续下载。
+- 这是较小的本地模型，生成质量、运行时间和可用性可能受 GitHub runner 资源与外部下载状态影响。
+- 如果模型安装、下载或推理失败，工作流仍会保存 RSS 新闻线索，并明确标记本次没有成功生成 AI 总结；不会把规则拼接内容冒充 AI 生成。
 
-## 手动运行
-进入 GitHub 仓库的 **Actions**，选择 **每日 AI 新闻简报**，点击 **Run workflow**。
+## 自动运行与手动运行
+- 定时：每天北京时间 17:20（UTC 09:20）。
+- 手动：进入仓库 **Actions** → **每日 AI 新闻简报** → **Run workflow**。
+- 如果自动运行失败，请打开 Actions 中最新一次运行查看日志。
 
-## 权限
-仓库 Settings → Actions → General → Workflow permissions，选择 **Read and write permissions**，保存。否则工作流可能无法提交报告。
+## DeepSeek 发布核实
+新闻标题和 RSS 搜索结果不是官方发布确认。报告应优先核对 [DeepSeek 官方新闻页](https://www.deepseek.com/en/news/) 和 [官方 API 更新日志](https://api-docs.deepseek.com/zh-cn/updates/)，并区分 V4.1 Flash、Flash-1017、V4 Pro 与 V4.1 Pro。
 
 ## 报告
-生成文件位于 `reports/YYYY-MM-DD.md`。请核实原始来源，RSS 标题不等于已验证的事实。
+报告保存于 `reports/YYYY-MM-DD.md`。请打开原始来源核实关键消息；本地小模型的摘要也可能出错。
