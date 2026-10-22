@@ -28,14 +28,7 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-      - name: Cache local model weights
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/huggingface/hub
-          key: qwen2.5-0.5b-instruct-q4km-v1
-      - name: Install local inference dependencies
-        run: python -m pip install --upgrade pip wheel && python -m pip install --prefer-binary -r requirements.txt
-      - name: Generate AI-written report
+      - name: Collect RSS news and prepare ChatGPT prompt
         run: python scripts/daily_briefing.py
       - name: Commit report
         run: |
