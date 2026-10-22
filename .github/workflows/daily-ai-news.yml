@@ -1,21 +1,13 @@
-name: 每日 AI 新闻简报
+name: 每日 AI 新闻简报（RSS 素材准备）
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - "scripts/daily_briefing.py"
-      - "requirements.txt"
-      - ".github/workflows/daily-ai-news.yml"
-  schedule:
-    - cron: "20 9 * * *" # 每天北京时间 17:20
   workflow_dispatch:
 
 permissions:
   contents: write
 
 concurrency:
-  group: daily-ai-news
+  group: daily-ai-news-rss
   cancel-in-progress: false
 
 jobs:
@@ -28,9 +20,9 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-      - name: Collect RSS news and prepare ChatGPT prompt
+      - name: Collect RSS news and prepare prompt material
         run: python scripts/daily_briefing.py
-      - name: Commit report
+      - name: Commit RSS material (not an AI-generated summary)
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
@@ -38,6 +30,6 @@ jobs:
           if git diff --cached --quiet; then
             echo "No report changes to commit."
           else
-            git commit -m "Daily AI news briefing"
+            git commit -m "Prepare daily AI news source material"
             git push
           fi
