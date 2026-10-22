@@ -1,3 +1,2 @@
-# Local open-weight model inference; no API key or paid API.
-huggingface_hub>=0.26,<1.0
-llama-cpp-python==0.3.16
+# This workflow uses only Python standard-library modules.
+# No local model, API key, or paid inference service is used.
