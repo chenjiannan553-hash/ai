@@ -9,6 +9,7 @@ from html.parser import HTMLParser
 import xml.etree.ElementTree as ET
 import html
 import re
+import traceback
 
 QUERIES = [
     ("DeepSeek V4.1 Pro 发布追踪", '"DeepSeek" ("V4.1 Pro" OR "V4.1" OR "V4 Pro")'),
@@ -90,7 +91,8 @@ def generate_ai_summary(items):
             raise RuntimeError(f"模型输出过短：{len(text)} 字符")
         return text, "Qwen2.5-0.5B-Instruct 本地模型"
     except Exception as exc:
-        print(f"Local AI summary unavailable; using transparent RSS-only fallback: {exc}")
+        print(f"Local AI summary unavailable; using transparent RSS-only fallback: {type(exc).__name__}: {exc}")
+        traceback.print_exc()
         return None, "未生成 AI 总结（模型下载、安装或推理失败）"
 
 def main():
